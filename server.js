@@ -37,7 +37,21 @@ app.use(passport.session());
 
 const bcrypt = require('bcryptjs');
 
+// ---------- LOGIN TOGGLE ----------
+// Abhi ke liye login OFF hai (local testing ke liye).
+// VPS pe deploy karte waqt isse true kar dena, taaki login wapas ON ho jaye.
+const AUTH_ENABLED = false;
+
+// Login OFF hone par isi guest user (asli DB row) se kaam chalega, taaki notes/xp save ho sakein
+function getGuestUser() {
+  return db.findOrCreateUser({ provider: 'guest', providerId: 'local', name: 'Guest' });
+}
+
 function ensureAuth(req, res, next) {
+  if (!AUTH_ENABLED) {
+    if (!req.user) req.user = getGuestUser(); // fake login taaki routes crash na karein
+    return next();
+  }
   if (req.isAuthenticated()) return next();
   res.status(401).json({ error: 'Login required' });
 }
@@ -55,9 +69,9 @@ app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Root — redirect to login if not authenticated
+// Root — redirect to login if not authenticated (agar AUTH_ENABLED true hai)
 app.get('/', (req, res) => {
-  if (!req.isAuthenticated()) return res.redirect('/login.html');
+  if (AUTH_ENABLED && !req.isAuthenticated()) return res.redirect('/login.html');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -131,6 +145,10 @@ app.post('/auth/logout', (req, res) => {
 
 // ---------- User info ----------
 app.get('/api/me', (req, res) => {
+  if (!AUTH_ENABLED) {
+    const g = getGuestUser();
+    return res.json({ id: g.id, name: g.name, avatar: g.avatar, provider: g.provider, xp: g.xp });
+  }
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not logged in' });
   res.json({
     id: req.user.id,
