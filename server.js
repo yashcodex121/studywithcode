@@ -8,7 +8,7 @@ const passport = require('./auth');
 const db = require('./db');
 
 const PORT = process.env.PORT || 3000;
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 if (!process.env.GROQ_API_KEY) {
   console.warn(
